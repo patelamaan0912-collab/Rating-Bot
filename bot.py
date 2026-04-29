@@ -659,4 +659,5 @@ async def on_member_join(member):
 # =========================
 # RUN
 # =========================
+keep_alive()
 bot.run(TOKEN)
