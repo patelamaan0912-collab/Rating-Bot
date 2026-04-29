@@ -1,3 +1,5 @@
+print("Bot file loaded")
+card_cache = {}
 from flask import Flask
 from threading import Thread
 
@@ -485,7 +487,30 @@ def generate_card(member, user_data):
     base.save(buffer, format="PNG")
     buffer.seek(0)
     return buffer
+    
+def get_cached_card(member, user_data):
+    uid = str(member.id)
+    up = user_data.get("up", 0)
+    down = user_data.get("down", 0)
 
+    current_state = (up, down)
+
+    # check cache
+    if uid in card_cache:
+        cached = card_cache[uid]
+
+        if cached["data"] == current_state:
+            return cached["image"]  # ⚡ instant return
+
+    # regenerate if changed
+    img = get_cached_card(member, user_data)
+
+    card_cache[uid] = {
+        "data": current_state,
+        "image": img
+    }
+
+    return img
 # =========================
 # BUTTON
 # =========================
@@ -500,10 +525,14 @@ class VoteButton(Button):
 
     async def callback(self, interaction):
         await interaction.response.send_message("⏳ Processing your vote...", ephemeral=True)
-
+      
+        uid = str(member.id)
+        if uid in card_cache:
+            del card_cache[uid]
+            
         g = get_guild(interaction.guild.id)
         users = g["users"]
-
+        
         voter = str(interaction.user.id)
         target = self.uid
 
@@ -649,7 +678,7 @@ async def setup(ctx):
 # =========================
 @bot.event
 async def on_ready():
-    print(f"Logged in as {bot.user}")
+    print(f"✅ Logged in as {bot.user}")
 
 @bot.event
 async def on_member_join(member):
@@ -659,5 +688,13 @@ async def on_member_join(member):
 # =========================
 # RUN
 # =========================
-keep_alive()
-bot.run(TOKEN)
+import time
+import os
+keep_alive()  # you can keep this (harmless on Railway)
+while True:
+    try:
+        print("🚀 Starting bot...")
+        bot.run(TOKEN)
+    except Exception as e:
+        print(f"⚠️ Bot crashed: {e}")
+        time.sleep(10)
