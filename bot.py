@@ -493,8 +493,9 @@ class VoteButton(Button):
     async def callback(self, interaction):
         await interaction.response.send_message("⏳ Processing your vote...", ephemeral=True)
       
-        if self.uid in card_cache:
-            del card_cache[self.uid]
+        uid = str(member.id)
+        if uid in card_cache:
+            del card_cache[uid]
             
         g = get_guild(interaction.guild.id)
         users = g["users"]
@@ -531,11 +532,10 @@ class VoteButton(Button):
         await interaction.edit_original_response(content="✅ Vote counted")
 
 def create_view(uid):
-    v = View(timeout=86400)
+    v = View(timeout=None)
     v.add_item(VoteButton(uid, "up"))
     v.add_item(VoteButton(uid, "down"))
     return v
-
 # =========================
 # UPDATE MESSAGE
 # =========================
