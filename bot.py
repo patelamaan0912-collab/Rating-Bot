@@ -399,7 +399,7 @@ def generate_card(member, user_data):
     # =========================
     # LABELS
     # =========================
-    labels = ["TOTAL VOTES", "ACTIVITY SCORE", "JOINED DISCORD", "SERVER"]
+    labels = ["TOTAL VOTES", "ACTIVITY SCORE", "JOINED SEERVER", "SERVER"]
 
     for i in range(4):
         draw.text((centers[i], y1+30), labels[i], font=font_small, fill="#e6f7ff", anchor="mm")
