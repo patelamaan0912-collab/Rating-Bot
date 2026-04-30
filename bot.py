@@ -117,7 +117,7 @@ def generate_card(member, user_data):
     score_box = (820, 90, 980, 260)
     up_box = (220, 260, 480, 360)
     down_box = (520, 260, 780, 360)
-    stats_box = (80, 450, 780, 630)
+    stats_box = (80, 450, 980, 630)
     logo_pos = (820, 460)
 
     progress_y = 410
@@ -127,76 +127,43 @@ def generate_card(member, user_data):
     # =========================
     def neon_box(coords, color, radius=25):
         x1, y1, x2, y2 = coords
-
-        # convert base color
         base_rgb = tuple(int(color[i:i+2], 16) for i in (1,3,5))
 
         glow = Image.new("RGBA", base.size, (0,0,0,0))
         g = ImageDraw.Draw(glow)
 
-        # 🌈 GRADIENT COLORS (left → right)
-        grad_colors = [
-            base_rgb,
-            (0,255,255),
-            (180,100,255),
-            (255,80,80)
-        ]
-
-        steps = 10
-        for i in range(steps):
-            t = i / steps
-
-            # interpolate gradient
-            c1 = grad_colors[i % len(grad_colors)]
-            c2 = grad_colors[(i+1) % len(grad_colors)]
-
-            r = int(c1[0] * (1-t) + c2[0] * t)
-            g_col = int(c1[1] * (1-t) + c2[1] * t)
-            b = int(c1[2] * (1-t) + c2[2] * t)
-
+        # 🔥 OUTER GLOW (soft aura)
+        for i in range(20):
             g.rounded_rectangle(
                 (x1-i, y1-i, x2+i, y2+i),
                 radius=radius+i,
-                outline=(r, g_col, b, 120),
+                outline=(*base_rgb, 25),
                 width=3
             )
 
-        glow = glow.filter(ImageFilter.GaussianBlur(8))
+        # 🔥 CORE GLOW (strong)
+        for i in range(10):
+            g.rounded_rectangle(
+                (x1-i, y1-i, x2+i, y2+i),
+                radius=radius+i,
+                outline=(*base_rgb, 180 - i*15),
+                width=4
+            )
+
+        glow = glow.filter(ImageFilter.GaussianBlur(10))
         base.alpha_composite(glow)
 
-        # MAIN BORDER
-        draw.rounded_rectangle(coords, radius, outline=color, width=3)
+        # ⚡ MAIN LIGHTSABER LINE
+        draw.rounded_rectangle(coords, radius, outline=color, width=5)
 
-        # WHITE CORE LINE
+        # ⚡ INNER CORE (sharp glow line)
         draw.rounded_rectangle(
             (x1+2, y1+2, x2-2, y2-2),
             radius,
-            outline=(255,255,255),
+            outline=(255,255,255,180),
             width=1
         )
-
-    import random
-
-    def add_particles(area, color, count=20):
-        x1, y1, x2, y2 = area
-        rgb = tuple(int(color[i:i+2],16) for i in (1,3,5))
-
-        for _ in range(count):
-            x = random.randint(x1, x2)
-            y = random.randint(y1, y2)
-
-            size = random.randint(1,3)
-
-            glow = Image.new("RGBA", base.size, (0,0,0,0))
-            g = ImageDraw.Draw(glow)
-
-            g.ellipse((x-size, y-size, x+size, y+size),
-                    fill=(*rgb, 120))
-
-            glow = glow.filter(ImageFilter.GaussianBlur(2))
-            base.alpha_composite(glow)
-
-
+        
     # =========================
     # DRAW BOXES
     # =========================
@@ -212,7 +179,7 @@ def generate_card(member, user_data):
 
         x_offset = (frame_i * 100) % WIDTH
 
-        s.line((x_offset, y, x_offset+200, y), fill=(255,255,255,180), width=3)
+        s.line((x_offset, y, x_offset+200, y), fill=(255,255,255,180), width=13)
 
         shine = shine.filter(ImageFilter.GaussianBlur(8))
         base.alpha_composite(shine)
@@ -289,8 +256,6 @@ def generate_card(member, user_data):
     # REAL USERNAME (below)
     draw.text((nx1+20, ny1+95), member.name, font=font_small, fill="#ffd166")
 
-    add_particles(username_box, main_color, 15)
-
     # =========================
     # SCORE BOX (CENTERED)
     # =========================
@@ -341,7 +306,6 @@ def generate_card(member, user_data):
     # =========================
     # PROGRESS BAR (REAL)
     # =========================
-
     bars = 40
 
     # calculate real progress
@@ -369,14 +333,12 @@ def generate_card(member, user_data):
     draw.text((775, progress_y), "100%", font=font_small, fill="#00eaff")
     draw.text((WIDTH//2, 385), "REPUTATION PROGRESS", font=font_small, fill="#00eaff", anchor="mm")
 
-    add_particles((200, progress_y-20, 800, progress_y+20), main_color, 25)
-
     # =========================
     # STATS BOX (FIXED CLEAN)
     # =========================
 
     x1, y1, x2, y2 = stats_box
-    section_width = (x2 - x1) // 3
+    section_width = (x2 - x1) // 4
 
     # vertical dividers
     def glow_line(x):
@@ -396,19 +358,18 @@ def generate_card(member, user_data):
         draw.line((x, y1+10, x, y2-10), fill="#d580ff", width=2)
 
     # APPLY
-    glow_line(x1 + section_width)
-    glow_line(x1 + section_width*2)
-    draw.line((x1 + section_width*2, y1+10, x1 + section_width*2, y2-10), fill="#b266ff", width=2)
+    for i in range(1, 4):
+        glow_line(x1 + section_width * i)
 
     total_votes = up + down
     activity = total_votes * 2
     joined = member.joined_at.strftime("%d %b %Y").upper() if member.joined_at else "--"
 
-    # ✅ DEFINE CENTERS FIRST
     centers = [
         x1 + section_width//2,
         x1 + section_width + section_width//2,
-        x1 + section_width*2 + section_width//2
+        x1 + section_width*2 + section_width//2,
+        x1 + section_width*3 + section_width//2
     ]
 
     # =========================
@@ -438,9 +399,9 @@ def generate_card(member, user_data):
     # =========================
     # LABELS
     # =========================
-    labels = ["TOTAL VOTES", "ACTIVITY SCORE", "JOINED DISCORD"]
+    labels = ["TOTAL VOTES", "ACTIVITY SCORE", "JOINED DISCORD", "SERVER"]
 
-    for i in range(3):
+    for i in range(4):
         draw.text((centers[i], y1+30), labels[i], font=font_small, fill="#e6f7ff", anchor="mm")
 
     # =========================
@@ -467,50 +428,56 @@ def generate_card(member, user_data):
     try:
         if member.guild.icon:
             r = requests.get(member.guild.icon.url)
-            guild_icon = Image.open(io.BytesIO(r.content)).resize((140,140)).convert("RGBA")
+            guild_icon = Image.open(io.BytesIO(r.content)).resize((100,100)).convert("RGBA")
 
-            # round mask
-            mask = Image.new("L", (140,140), 0)
-            ImageDraw.Draw(mask).ellipse((0,0,140,140), fill=255)
+            mask = Image.new("L", (100,100), 0)
+            ImageDraw.Draw(mask).ellipse((0,0,100,100), fill=255)
 
-            base.paste(guild_icon, logo_pos, mask)
-    except:
-        pass
+            icon_x = centers[3] - 50
+            icon_y = y1 + 40
+
+            # 🔥 SAME AURA AS AVATAR
+            rgb = tuple(int(main_color[i:i+2],16) for i in (1,3,5))
+
+            aura = Image.new("RGBA", base.size, (0,0,0,0))
+            a = ImageDraw.Draw(aura)
+
+            # core glow
+            for i in range(10):
+                a.ellipse(
+                    (icon_x-i, icon_y-i, icon_x+100+i, icon_y+100+i),
+                    outline=(*rgb, 200 - i*12),
+                    width=4
+                )
+
+            # soft glow
+            for i in range(15):
+                a.ellipse(
+                    (icon_x-i-3, icon_y-i-3, icon_x+103+i, icon_y+103+i),
+                    outline=(*rgb, 40),
+                    width=2
+                )
+
+            aura = aura.filter(ImageFilter.GaussianBlur(5))
+            base.alpha_composite(aura)
+
+            # white ring
+            draw.ellipse((icon_x-2, icon_y-2, icon_x+102, icon_y+102), outline=(255,255,255), width=2)
+
+            # paste icon
+            base.paste(guild_icon, (icon_x, icon_y), mask)
+
+    except Exception as e:
+        print("Guild icon error:", e)
 
 
     # =========================
     # SAVE BUFFER
     # =========================
     buffer = io.BytesIO()
-
-    buffer = io.BytesIO()
     base.save(buffer, format="PNG")
     buffer.seek(0)
     return buffer
-    
-def get_cached_card(member, user_data):
-    uid = str(member.id)
-    up = user_data.get("up", 0)
-    down = user_data.get("down", 0)
-
-    current_state = (up, down)
-
-    # check cache
-    if uid in card_cache:
-        cached = card_cache[uid]
-
-        if cached["data"] == current_state:
-            return cached["image"]  # ⚡ instant return
-
-    # regenerate if changed
-    img = get_cached_card(member, user_data)
-
-    card_cache[uid] = {
-        "data": current_state,
-        "image": img
-    }
-
-    return img
 # =========================
 # BUTTON
 # =========================
@@ -526,9 +493,8 @@ class VoteButton(Button):
     async def callback(self, interaction):
         await interaction.response.send_message("⏳ Processing your vote...", ephemeral=True)
       
-        uid = str(member.id)
-        if uid in card_cache:
-            del card_cache[uid]
+        if self.uid in card_cache:
+            del card_cache[self.uid]
             
         g = get_guild(interaction.guild.id)
         users = g["users"]
@@ -565,7 +531,7 @@ class VoteButton(Button):
         await interaction.edit_original_response(content="✅ Vote counted")
 
 def create_view(uid):
-    v = View(timeout=None)
+    v = View(timeout=86400)
     v.add_item(VoteButton(uid, "up"))
     v.add_item(VoteButton(uid, "down"))
     return v
@@ -682,8 +648,43 @@ async def on_ready():
 
 @bot.event
 async def on_member_join(member):
-    if not member.bot:
-        await create_profile(member.guild, member)
+    if member.bot:
+        return
+
+    guild = member.guild
+    g = get_guild(guild.id)
+    uid = str(member.id)
+
+    if uid in g["users"] and "message_id" in g["users"][uid]:
+        try:
+            await update_message(guild, uid)
+            return
+        except:
+            pass
+
+    await create_profile(guild, member)
+
+@bot.event
+async def on_member_remove(member):
+    guild = member.guild
+    g = get_guild(guild.id)
+    uid = str(member.id)
+
+    user = g["users"].get(uid)
+    if not user:
+        return
+
+    try:
+        channel = bot.get_channel(user.get("channel_id"))
+        if channel:
+            msg = await channel.fetch_message(user.get("message_id"))
+            await msg.delete()
+    except:
+        pass
+
+    # Optional: remove from data
+    del g["users"][uid]
+    save_data()
 
 # =========================
 # RUN
