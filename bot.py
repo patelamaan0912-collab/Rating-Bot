@@ -492,8 +492,9 @@ class VoteButton(Button):
 
     async def callback(self, interaction):
         await interaction.response.send_message("⏳ Processing your vote...", ephemeral=True)
-      
-        uid = str(member.id)
+    
+        uid = self.uid  # ✅ FIXED
+
         if uid in card_cache:
             del card_cache[uid]
             
@@ -521,7 +522,7 @@ class VoteButton(Button):
 
         users[target]["voters"][voter] = self.vote
 
-        if self.vote=="up":
+        if self.vote == "up":
             users[target]["up"] += 1
         else:
             users[target]["down"] += 1
